@@ -28,6 +28,7 @@ const ( // app msgs
 	MSG_QUES_STATUS_ERROR          string = "Status could not be updated !!"
 	MSG_QUES_REMOVE_SUCCESS        string = "Successfully removed question !!"
 	MSG_QUES_REMOVE_ERROR          string = "Question could not be removed !!"
+	MSG_CORRUPT_DATA               string = "Corrupt Criteria Data"
 
 	MSG_DUPLICATE_RECORD string = "Duplicate Record"
 )
@@ -56,8 +57,9 @@ const ( // congfig params
 	MOBILE_LENGTH    = 10
 	USERNAME_STR_LEN = 3
 
-	DEF_REQUESTS_LIMIT = 15
+	DEF_REQUESTS_LIMIT = 60
 	DEF_REQUESTS_PAGE  = 0
+	QUES_BATCH_SIZE    = 10000
 
 	GROUP_CODE_PREFIX = "GP_"
 )

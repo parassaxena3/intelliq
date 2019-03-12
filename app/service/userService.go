@@ -9,13 +9,14 @@ import (
 
 	"intelliq/app/common"
 	utility "intelliq/app/common"
+	"intelliq/app/dto"
 	"intelliq/app/enums"
 	"intelliq/app/model"
 	"intelliq/app/repo"
 )
 
 //AddNewUser adds new user
-func AddNewUser(user *model.User) *model.AppResponse {
+func AddNewUser(user *model.User) *dto.AppResponseDto {
 	if !utility.IsValidMobile(user.Mobile) {
 		return utility.GetErrorResponse(common.MSG_BAD_INPUT)
 	}
@@ -37,7 +38,7 @@ func AddNewUser(user *model.User) *model.AppResponse {
 }
 
 //UpdateUser updates existing user
-func UpdateUser(user *model.User) *model.AppResponse {
+func UpdateUser(user *model.User) *dto.AppResponseDto {
 	if !utility.IsPrimaryIDValid(user.UserID) {
 		return utility.GetErrorResponse(common.MSG_INVALID_ID)
 	}
@@ -56,7 +57,7 @@ func UpdateUser(user *model.User) *model.AppResponse {
 }
 
 //FetchAllSchoolAdmins gets all users with role school admin for a group
-func FetchAllSchoolAdmins(groupID string) *model.AppResponse {
+func FetchAllSchoolAdmins(groupID string) *dto.AppResponseDto {
 	if utility.IsStringIDValid(groupID) {
 		userRepo := repo.NewUserRepository()
 		users, err := userRepo.FindAllSchoolAdmins(bson.ObjectIdHex(groupID))
@@ -70,10 +71,11 @@ func FetchAllSchoolAdmins(groupID string) *model.AppResponse {
 }
 
 //FetchAllTeachers gets all teachers within school
-func FetchAllTeachers(schoolID string) *model.AppResponse {
+func FetchAllTeachers(schoolID string) *dto.AppResponseDto {
 	if utility.IsStringIDValid(schoolID) {
 		userRepo := repo.NewUserRepository()
-		users, err := userRepo.FindAllSchoolTeachers(bson.ObjectIdHex(schoolID), nil)
+		users, err := userRepo.FindAllSchoolTeachers(
+			bson.ObjectIdHex(schoolID), nil)
 		if err != nil {
 			fmt.Println(err.Error())
 			return utility.GetErrorResponse(common.MSG_REQUEST_FAILED)
@@ -84,11 +86,11 @@ func FetchAllTeachers(schoolID string) *model.AppResponse {
 }
 
 //FetchAllTeachersUnderReviewer gets all teachers under a reviewer
-func FetchAllTeachersUnderReviewer(schoolID string, reviewerID string) *model.AppResponse {
+func FetchAllTeachersUnderReviewer(schoolID string, reviewerID string) *dto.AppResponseDto {
 	if utility.IsStringIDValid(schoolID) && utility.IsStringIDValid(reviewerID) {
 		userRepo := repo.NewUserRepository()
-		users, err := userRepo.FindAllteachersUnderReviewer(bson.ObjectIdHex(schoolID),
-			bson.ObjectIdHex(reviewerID))
+		users, err := userRepo.FindAllteachersUnderReviewer(
+			bson.ObjectIdHex(schoolID), bson.ObjectIdHex(reviewerID))
 		if err != nil {
 			fmt.Println(err.Error())
 			return utility.GetErrorResponse(common.MSG_REQUEST_FAILED)
@@ -99,14 +101,15 @@ func FetchAllTeachersUnderReviewer(schoolID string, reviewerID string) *model.Ap
 }
 
 //FetchSelectedTeachers gets all teachers within school for specific role
-func FetchSelectedTeachers(schoolID string, roleType string) *model.AppResponse {
+func FetchSelectedTeachers(schoolID string, roleType string) *dto.AppResponseDto {
 	role, errs := strconv.Atoi(roleType)
 	if errs != nil || role < common.MIN_VALID_ROLE || role > common.MAX_VALID_ROLE {
 		return utility.GetErrorResponse(common.MSG_NO_ROLE)
 	}
 	if utility.IsStringIDValid(schoolID) {
 		userRepo := repo.NewUserRepository()
-		users, err := userRepo.FindAllSchoolTeachers(bson.ObjectIdHex(schoolID), enums.RoleType(role))
+		users, err := userRepo.FindAllSchoolTeachers(
+			bson.ObjectIdHex(schoolID), enums.UserRole(role))
 		if err != nil {
 			fmt.Println(err.Error())
 			return utility.GetErrorResponse(common.MSG_REQUEST_FAILED)
@@ -117,16 +120,18 @@ func FetchSelectedTeachers(schoolID string, roleType string) *model.AppResponse 
 }
 
 //TransferUserRole transfers user roles
-func TransferUserRole(roleType string, fromUserID string, toUserID string) *model.AppResponse {
+func TransferUserRole(roleType string, fromUserID string, toUserID string) *dto.AppResponseDto {
 	role, errs := strconv.Atoi(roleType)
-	if errs != nil || role < common.MIN_VALID_ROLE || role > common.MAX_VALID_ROLE {
+	if errs != nil || role < common.MIN_VALID_ROLE ||
+		role > common.MAX_VALID_ROLE {
 		return utility.GetErrorResponse(common.MSG_NO_ROLE)
 	}
 	if !utility.IsStringIDValid(fromUserID) || !utility.IsStringIDValid(toUserID) {
 		return utility.GetErrorResponse(common.MSG_INVALID_ID)
 	}
 	userRepo := repo.NewUserRepository()
-	msg, err := userRepo.TransferRole(enums.RoleType(role), bson.ObjectIdHex(fromUserID), bson.ObjectIdHex(toUserID))
+	msg, err := userRepo.TransferRole(enums.UserRole(role),
+		bson.ObjectIdHex(fromUserID), bson.ObjectIdHex(toUserID))
 	if err != nil || len(msg) > 0 {
 		if len(msg) > 0 {
 			return utility.GetErrorResponse(msg)
@@ -142,7 +147,7 @@ func TransferUserRole(roleType string, fromUserID string, toUserID string) *mode
 }
 
 //RemoveUserFromSchool transfers user roles
-func RemoveUserFromSchool(schoolID string, userID string) *model.AppResponse {
+func RemoveUserFromSchool(schoolID string, userID string) *dto.AppResponseDto {
 	if !utility.IsStringIDValid(schoolID) || !utility.IsStringIDValid(userID) {
 		return utility.GetErrorResponse(common.MSG_INVALID_ID)
 	}
@@ -160,7 +165,7 @@ func RemoveUserFromSchool(schoolID string, userID string) *model.AppResponse {
 }
 
 //AddBulkUser adds new users
-func AddBulkUser(users model.Users) *model.AppResponse {
+func AddBulkUser(users model.Users) *dto.AppResponseDto {
 	var userList []interface{}
 	for _, user := range users {
 		user.Password = utility.EncryptData(common.TEMP_PWD_PREFIX + user.Mobile)
@@ -183,7 +188,7 @@ func AddBulkUser(users model.Users) *model.AppResponse {
 }
 
 //UpdateBulkUsers adds new users
-func UpdateBulkUsers(users model.Users) *model.AppResponse {
+func UpdateBulkUsers(users model.Users) *dto.AppResponseDto {
 	userRepo := repo.NewUserRepository()
 	err := userRepo.BulkUpdate(users)
 	if err != nil {
@@ -198,7 +203,7 @@ func UpdateBulkUsers(users model.Users) *model.AppResponse {
 }
 
 //AuthenticateUser authenicate give user and returns authenicated user details.
-func AuthenticateUser(user *model.User) *model.AppResponse {
+func AuthenticateUser(user *model.User) *dto.AppResponseDto {
 	if utility.IsValidMobile(user.Mobile) {
 		userRepo := repo.NewUserRepository()
 		loggedUser, err := userRepo.FindOne("mobile", user.Mobile)
@@ -215,7 +220,7 @@ func AuthenticateUser(user *model.User) *model.AppResponse {
 }
 
 //Logout logs out the given user and clears session
-func Logout(userID string) *model.AppResponse {
+func Logout(userID string) *dto.AppResponseDto {
 	if !utility.IsStringIDValid(userID) {
 		return utility.GetErrorResponse(common.MSG_INVALID_ID)
 	}
@@ -223,7 +228,7 @@ func Logout(userID string) *model.AppResponse {
 }
 
 //FetchUserByMobileOrID fetch user info by mobile or ID
-func FetchUserByMobileOrID(key string, val string) *model.AppResponse {
+func FetchUserByMobileOrID(key string, val string) *dto.AppResponseDto {
 	var value interface{} = val
 	if key == common.PARAM_KEY_ID {
 		if utility.IsStringIDValid(val) {

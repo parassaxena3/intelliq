@@ -15,14 +15,14 @@ type Question struct {
 	Std              uint16               `json:"std" bson:"std"`
 	Subject          string               `json:"subject" bson:"subject"`
 	Topic            string               `json:"topic" bson:"topic"`
-	Difficulty       enums.Difficulty     `json:"difficulty" bson:"difficulty"`
+	Difficulty       enums.QuesDifficulty `json:"difficulty" bson:"difficulty"`
 	Length           enums.QuesLength     `json:"length" bson:"length"`
 	Status           enums.QuestionStatus `json:"status" bson:"status"`
 	Tags             []string             `json:"tags" bson:"tags"`
 	Category         string               `json:"category" bson:"category"`
 	ImageURL         string               `json:"imageUrl" bson:"imageUrl"`
-	Owner            contributor          `json:"owner" bson:"owner"`
-	Reviewer         contributor          `json:"reviewer" bson:"reviewer"`
+	Owner            Contributor          `json:"owner" bson:"owner"`
+	Reviewer         Contributor          `json:"reviewer" bson:"reviewer"`
 	School           School               `json:"school" bson:"school"`
 	GroupCode        string               `json:"groupCode" bson:"groupCode"`
 	CreateDate       time.Time            `json:"createDate" bson:"createDate"`
@@ -31,7 +31,7 @@ type Question struct {
 	OriginID         *bson.ObjectId       `json:"originId" bson:"originId,omitempty"`
 }
 
-type contributor struct {
+type Contributor struct {
 	UserID   bson.ObjectId `json:"userId" bson:"_id,omitempty"`
 	UserName string        `json:"userName" bson:"userName"`
 }

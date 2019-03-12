@@ -1,8 +1,12 @@
 package common
 
 import (
+	"crypto/sha512"
+	"encoding/json"
 	"fmt"
+	"intelliq/app/dto"
 	"log"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -12,24 +16,23 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"intelliq/app/enums"
-	"intelliq/app/model"
 )
 
 //GetErrorResponse prepares error response with msg
-func GetErrorResponse(msg string) *model.AppResponse {
+func GetErrorResponse(msg string) *dto.AppResponseDto {
 	status := enums.Status.ERROR
 	if msg == MSG_NO_RECORD {
 		status = enums.Status.SUCCESS
 	}
-	return &model.AppResponse{
+	return &dto.AppResponseDto{
 		Status: status,
 		Msg:    msg,
 	}
 }
 
 //GetSuccessResponse prepares success response with body
-func GetSuccessResponse(body interface{}) *model.AppResponse {
-	return &model.AppResponse{
+func GetSuccessResponse(body interface{}) *dto.AppResponseDto {
+	return &dto.AppResponseDto{
 		Status: enums.Status.SUCCESS,
 		Body:   body,
 	}
@@ -116,4 +119,44 @@ func GenerateUserName(name string, mobile string) string {
 //IsValidGroupCode checks for groupPrefix
 func IsValidGroupCode(groupCode string) bool {
 	return strings.HasPrefix(groupCode, GROUP_CODE_PREFIX) && len(GROUP_CODE_PREFIX) < len(groupCode)
+}
+
+//GenerateRandom generated random number between give 0 & upperlimit excluding upperlimit
+func GenerateRandom(upperLimit int) int {
+	return rand.Intn(upperLimit)
+}
+
+//GetMin return min of 2 int args
+func GetMin(num1, num2 int) int {
+	if num1 < num2 {
+		return num1
+	}
+	return num2
+}
+
+//PrintJSON converts obj to json string
+func PrintJSON(obj interface{}) {
+	tagFilter, _ := json.Marshal(obj)
+	fmt.Println(string(tagFilter))
+}
+
+//GenerateHash computes hash of given obje
+func GenerateHash(obj interface{}) string {
+	sha512 := sha512.New()
+	json := ObjectToJSON(obj)
+	if json == nil {
+		return ""
+	}
+	sha512.Write(json)
+	return fmt.Sprintf("%x", sha512.Sum(nil))
+}
+
+//ObjectToJSON converts obj to json string
+func ObjectToJSON(obj interface{}) []byte {
+	json, err := json.Marshal(obj)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	return json
 }

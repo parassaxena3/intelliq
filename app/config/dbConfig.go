@@ -16,11 +16,13 @@ const (
 )
 
 const (
-	COLL_META   = "meta"
-	COLL_USER   = "users"
-	COLL_SCHOOL = "schools"
-	COLL_GROUP  = "groups"
-	COLL_QUES   = "_questions"
+	COLL_META     = "meta"
+	COLL_USER     = "users"
+	COLL_SCHOOL   = "schools"
+	COLL_GROUP    = "groups"
+	COLL_QUES     = "_questions"
+	COLL_TEMPLATE = "_templates"
+	COLL_PAPER    = "_papers"
 )
 
 var dbSession *mgo.Session
@@ -34,7 +36,7 @@ func Connect() (*mgo.Session, error) {
 	}
 	log.Info("Successfully connected to DB at ", url)
 	dbSession = session
-	//createIndices(session.Copy())
+	createIndices(session.Copy())
 	return session, nil
 }
 
@@ -54,13 +56,16 @@ func GetCollection(collName string) *mgo.Collection {
 			log.Error("Failed to get coll names:", err)
 			return nil
 		}
+		collFound := false
 		for _, name := range collNames {
-			if collName == name {
+			collFound = collName == name
+			if collFound {
 				break
-			} else {
-				log.Error("collection with name: ", collName, "  does not exist ..")
-				return nil
 			}
+		}
+		if !collFound {
+			log.Error("collection with name: ", collName, "  does not exist ..")
+			return nil
 		}
 	}
 	coll := db.C(collName)
@@ -89,7 +94,12 @@ func createIndices(session *mgo.Session) {
 	}
 	addUniqueIndex(db, COLL_GROUP, []string{"code"})
 	addUniqueIndex(db, COLL_SCHOOL, []string{"code"})
-	addUniqueIndex(db, COLL_USER, []string{"mobile"})
+	addUniqueIndex(db, "GP_DPS"+COLL_TEMPLATE, []string{"criteria512Hash"})
+	var searchFields []searchField
+	searchFields = append(searchFields, searchField{field: "title", weight: 4})
+	searchFields = append(searchFields, searchField{field: "topic", weight: 2})
+	searchFields = append(searchFields, searchField{field: "tags", weight: 1})
+	addSearchIndex(db, "GP_DPS"+COLL_QUES, searchFields)
 	db.Session.Close()
 }
 
@@ -110,6 +120,7 @@ func addSearchIndex(db *mgo.Database, collName string, searchFields []searchFiel
 		Weights: weights,
 		Name:    "textIndex",
 	}
+	log.Info("Creating search index for " + collName)
 	err := coll.EnsureIndex(index)
 	if err != nil {
 		panic("Could not create search index for " + collName + err.Error())
@@ -129,6 +140,22 @@ func addUniqueIndex(db *mgo.Database, collName string, fields []string) {
 		fmt.Println("Creating unique index on := ", key, " for coll := ", collName)
 		if err := coll.EnsureIndex(index); err != nil {
 			panic("Could not create unique index for " + collName)
+		}
+	}
+}
+
+func addIndex(db *mgo.Database, collName string, fields []string) {
+	coll := db.C(collName)
+	if coll == nil {
+		panic("No such Collection in DB" + collName)
+	}
+	for _, key := range fields {
+		index := mgo.Index{
+			Key:    []string{key},
+			Sparse: true,
+		}
+		if err := coll.EnsureIndex(index); err != nil {
+			panic("Could not create index for " + collName)
 		}
 	}
 }
