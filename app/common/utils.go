@@ -1,18 +1,23 @@
 package common
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
 	"intelliq/app/dto"
+	"io"
 	"log"
 	"math/rand"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 
 	"intelliq/app/enums"
@@ -113,17 +118,20 @@ func IsValidMobile(mobile string) bool {
 
 //GenerateUserName generates username from name,mobile e.g. user@FIR_MOB
 func GenerateUserName(name string, mobile string) string {
-	return USERNAME_PREFIX + strings.ToLower(name[0:USERNAME_STR_LEN]) + "_" + mobile[MOBILE_LENGTH-USERNAME_STR_LEN:MOBILE_LENGTH]
+	return USERNAME_PREFIX + strings.ToLower(
+		name[0:USERNAME_MIN_LENGTH]) + "_" +
+		mobile[MOBILE_LENGTH-USERNAME_MIN_LENGTH:MOBILE_LENGTH]
 }
 
 //IsValidGroupCode checks for groupPrefix
 func IsValidGroupCode(groupCode string) bool {
-	return strings.HasPrefix(groupCode, GROUP_CODE_PREFIX) && len(GROUP_CODE_PREFIX) < len(groupCode)
+	return strings.HasPrefix(groupCode,
+		GROUP_CODE_PREFIX) && len(GROUP_CODE_PREFIX) < len(groupCode)
 }
 
 //GenerateRandom generated random number between give 0 & upperlimit excluding upperlimit
-func GenerateRandom(upperLimit int) int {
-	return rand.Intn(upperLimit)
+func GenerateRandom(lowerLimit, upperLimit int) int {
+	return rand.Intn(upperLimit-lowerLimit) + lowerLimit
 }
 
 //GetMin return min of 2 int args
@@ -159,4 +167,44 @@ func ObjectToJSON(obj interface{}) []byte {
 		return nil
 	}
 	return json
+}
+
+//GenerateUUID generates random uuid
+func GenerateUUID() string {
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		fmt.Printf(err.Error())
+		return ""
+	}
+	return uuid.String()
+}
+
+//ReadFile reads file content
+func ReadFile(filePath string) []byte {
+	file, err := os.Open(filePath)
+	defer file.Close()
+	if err != nil {
+		fmt.Printf("Read File failed: %v\n", err)
+		return nil
+	}
+	reader := bufio.NewReader(file)
+	var buffer bytes.Buffer
+	for {
+		var line []byte
+		for {
+			line, err = reader.ReadBytes('\n')
+			buffer.Write(line)
+			if err != nil {
+				break
+			}
+		}
+		if err == io.EOF {
+			break
+		}
+	}
+	if err != io.EOF {
+		fmt.Printf("Read File failed: %v\n", err)
+		return nil
+	}
+	return buffer.Bytes()
 }
