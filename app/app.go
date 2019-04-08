@@ -1,17 +1,20 @@
 package main
 
 import (
+	"github.com/gin-gonic/gin"
+
 	"intelliq/app/approuter"
 	"intelliq/app/common"
 	"intelliq/app/config"
+	"intelliq/app/logger"
 	"intelliq/app/security"
-
-	"github.com/gin-gonic/gin"
 )
 
 var router *gin.Engine
 
 func main() {
+	logger.InitLogger(common.LOG_FILE, common.LOG_MAX_BYTES, common.LOG_BACKUP_COUNT)
+	defer logger.Logger.Close()
 	router = gin.Default()
 	if router != nil {
 		config.DBConnect()
@@ -22,6 +25,6 @@ func main() {
 		router.RunTLS(common.APP_PORT, common.SSL_CERT_FILEPATH,
 			common.SSL_KEY_FILEPATH)
 	} else {
-		panic("Router Failed")
+		logger.Logger.Error("Router Failed")
 	}
 }

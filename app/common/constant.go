@@ -69,9 +69,9 @@ const ( // congfig params
 	USERNAME_MIN_LENGTH = 3
 	PWD_MIN_LENGTH      = 8
 
-	DEF_REQUESTS_LIMIT = 60
-	DEF_REQUESTS_PAGE  = 0
-	QUES_BATCH_SIZE    = 10000
+	DEF_REQUESTS_PAGE_SIZE = 20
+	DEF_REQUESTS_PAGE      = 0
+	QUES_BATCH_SIZE        = 10000
 
 	OTP_LENGTH      = 6
 	OTP_UPPER_BOUND = 989899
@@ -101,4 +101,8 @@ const ( // congfig params
 	PRIVATE_KEY_FILEPATH = "/Users/lionheart/.ssh/appKey.priv"
 	SSL_CERT_FILEPATH    = "/Users/lionheart/.ssh/ssl.crt"
 	SSL_KEY_FILEPATH     = "/Users/lionheart/.ssh/sslKey.key"
+
+	LOG_FILE         = "/var/log/intelliq/intelliq.log"
+	LOG_MAX_BYTES    = 1000000
+	LOG_BACKUP_COUNT = 20
 )

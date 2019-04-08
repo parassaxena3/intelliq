@@ -1,17 +1,18 @@
 package controller
 
 import (
-	"intelliq/app/cachestore"
-	"intelliq/app/dto"
-	"intelliq/app/enums"
-	"intelliq/app/security"
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
+	"intelliq/app/cachestore"
 	"intelliq/app/common"
 	utility "intelliq/app/common"
+	"intelliq/app/dto"
+	"intelliq/app/enums"
 	"intelliq/app/model"
+	"intelliq/app/security"
 	"intelliq/app/service"
 )
 
@@ -38,6 +39,16 @@ func UpdateUserProfile(ctx *gin.Context) {
 		return
 	}
 	res := service.UpdateUser(&user)
+	if res.Status == enums.Status.SUCCESS && res.Body != nil {
+		if cachestore.CheckCache(ctx, user.Mobile) {
+			cachestore.SetCache(ctx, user.Mobile, user,
+				common.CACHE_OBJ_LONG_TIMEOUT, true)
+		}
+		if cachestore.CheckCache(ctx, user.UserID.String()) {
+			cachestore.SetCache(ctx, user.UserID.String(), user,
+				common.CACHE_OBJ_LONG_TIMEOUT, true)
+		}
+	}
 	ctx.JSON(http.StatusOK, res)
 }
 
@@ -81,7 +92,15 @@ func TransferRole(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
 		return
 	}
-	res := service.TransferUserRole(roleType, fromUserID, toUserID)
+	res, mobiles := service.TransferUserRole(roleType, fromUserID, toUserID)
+	if res.Status == enums.Status.SUCCESS {
+		if mobiles != nil {
+			cachestore.RemoveCache(ctx, mobiles[0])
+			cachestore.RemoveCache(ctx, mobiles[1])
+		}
+		cachestore.RemoveCache(ctx, fromUserID)
+		cachestore.RemoveCache(ctx, toUserID)
+	}
 	ctx.JSON(http.StatusOK, res)
 }
 
@@ -130,8 +149,20 @@ func ListUserByMobileOrID(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
 		return
 	}
-	res := service.FetchUserByMobileOrID(key, val)
-	ctx.JSON(http.StatusOK, res)
+	if cachestore.CheckCache(ctx, val) {
+		cacheVal := cachestore.GetCache(ctx, val).(string)
+		var user model.User
+		json.Unmarshal([]byte(cacheVal), &user)
+		ctx.JSON(http.StatusOK, utility.GetSuccessResponse(user))
+	} else {
+		res := service.FetchUserByMobileOrID(key, val)
+		if res.Status == enums.Status.SUCCESS && res.Body != nil {
+			cachestore.SetCache(ctx, val, res.Body,
+				common.CACHE_OBJ_LONG_TIMEOUT, true)
+		}
+		ctx.JSON(http.StatusOK, res)
+	}
+
 }
 
 //ResetUserPassword resets user password either forgotten or renew
@@ -200,7 +231,7 @@ func createOTPSession(ctx *gin.Context, otp string) bool {
 	OTPSessionID := cachestore.GenerateSessionID(ctx)
 	if len(OTPSessionID) > 0 {
 		cachestore.SetCache(ctx, OTPSessionID, otp,
-			common.CACHE_OTP_TIMEOUT)
+			common.CACHE_OTP_TIMEOUT, false)
 		ctx.Writer.Header().Set(common.RESPONSE_OTP_SESSION_ID_KEY,
 			OTPSessionID)
 		return true
@@ -217,7 +248,7 @@ func VerifyOTP(ctx *gin.Context) {
 	} else {
 		otpSessionID := ctx.Request.Header.Get(common.REQUEST_OTP_SESSION_ID_KEY)
 		if cachestore.CheckCache(ctx, otpSessionID) {
-			sessionOTP := cachestore.GetCache(ctx, otpSessionID).(string)
+			sessionOTP := cachestore.GetCache(ctx, otpSessionID)
 			if sessionOTP == userOTP {
 				cachestore.RemoveCache(ctx, otpSessionID)
 				ctx.JSON(http.StatusOK, utility.GetSuccessResponse(

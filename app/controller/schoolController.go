@@ -1,12 +1,16 @@
 package controller
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
+	"intelliq/app/cachestore"
 	"intelliq/app/common"
 	utility "intelliq/app/common"
+	"intelliq/app/enums"
 	"intelliq/app/model"
 	"intelliq/app/service"
 )
@@ -34,6 +38,16 @@ func UpdateSchoolProfile(ctx *gin.Context) {
 		return
 	}
 	res := service.UpdateSchool(&school)
+	if res.Status == enums.Status.SUCCESS && res.Body != nil {
+		if cachestore.CheckCache(ctx, school.Code) {
+			cachestore.SetCache(ctx, school.Code, school,
+				common.CACHE_OBJ_LONG_TIMEOUT, true)
+		}
+		if cachestore.CheckCache(ctx, school.SchoolID.String()) {
+			cachestore.SetCache(ctx, school.SchoolID.String(), school,
+				common.CACHE_OBJ_LONG_TIMEOUT, true)
+		}
+	}
 	ctx.JSON(http.StatusOK, res)
 }
 
@@ -49,6 +63,18 @@ func ListAllSchools(ctx *gin.Context) {
 func ListSchoolByCodeOrID(ctx *gin.Context) {
 	key := ctx.Param("key")
 	val := ctx.Param("val")
-	res := service.FetchSchoolByCodeOrID(key, val)
-	ctx.JSON(http.StatusOK, res)
+	if cachestore.CheckCache(ctx, val) {
+		cacheVal := cachestore.GetCache(ctx, val).(string)
+		var school model.School
+		json.Unmarshal([]byte(cacheVal), &school)
+		fmt.Println("Reading school details from cache!!")
+		ctx.JSON(http.StatusOK, utility.GetSuccessResponse(school))
+	} else {
+		res := service.FetchSchoolByCodeOrID(key, val)
+		if res.Status == enums.Status.SUCCESS && res.Body != nil {
+			cachestore.SetCache(ctx, val, res.Body,
+				common.CACHE_OBJ_LONG_TIMEOUT, true)
+		}
+		ctx.JSON(http.StatusOK, res)
+	}
 }
